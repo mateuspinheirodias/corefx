@@ -1,0 +1,32 @@
+parameters:
+  targetOS: ''
+  archGroup: ''
+  configuration: ''
+  helixQueues: ''
+  helixToken: $(BotAccount-dotnet-github-anon-kaonashi-bot-helix-token)
+  waitForCompletion: true
+  msbuildScript: ''
+  framework: ''
+
+steps:
+  - script: ${{ parameters.msbuildScript }}
+            src/upload-tests.proj
+            /t:CompressRuntimeDir
+            /p:TargetGroup=${{ parameters.framework }}
+            /p:ArchGroup=${{ parameters.archGroup }}
+            /p:ConfigurationGroup=${{ parameters.configuration }}
+            /p:OSGroup=${{ parameters.targetOS }}
+    displayName: Compress Runtime Directory
+  - script: ${{ parameters.msbuildScript }}
+            eng/sendtohelix.proj
+            /t:test
+            /p:HelixTargetQueues=${{ parameters.helixQueues }}
+            /p:HelixAccessToken=${{ parameters.helixToken }}
+            /p:HelixBuild=$(Build.BuildNumber)
+            /p:OSGroup=${{ parameters.targetOS }}
+            /p:TargetGroup=${{ parameters.framework }}
+            /p:ArchGroup=${{ parameters.archGroup }}
+            /p:ConfigurationGroup=${{ parameters.configuration }}
+    displayName: Send to Helix
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken) # We need to set this env var to publish helix results to Azure Dev Ops
